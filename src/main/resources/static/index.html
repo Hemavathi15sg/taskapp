@@ -1,0 +1,568 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Task Creator - Techwave Task Tracker</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+
+        .container {
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
+            padding: 40px;
+            max-width: 500px;
+            width: 100%;
+        }
+
+        .header {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+
+        .header h1 {
+            color: #333;
+            margin-bottom: 8px;
+            font-size: 28px;
+        }
+
+        .header p {
+            color: #666;
+            font-size: 16px;
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 600;
+            color: #333;
+        }
+
+        .required {
+            color: #e74c3c;
+        }
+
+        input[type="text"], textarea {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid #e1e8ed;
+            border-radius: 8px;
+            font-size: 16px;
+            transition: border-color 0.3s ease;
+        }
+
+        input[type="text"]:focus, textarea:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+
+        textarea {
+            resize: vertical;
+            min-height: 100px;
+        }
+
+        .char-count {
+            font-size: 12px;
+            color: #999;
+            text-align: right;
+            margin-top: 4px;
+        }
+
+        .char-count.warning {
+            color: #f39c12;
+        }
+
+        .char-count.error {
+            color: #e74c3c;
+        }
+
+        .btn {
+            width: 100%;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            padding: 14px;
+            border-radius: 8px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: transform 0.2s ease, box-shadow 0.2s ease;
+        }
+
+        .btn:hover:not(:disabled) {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 20px rgba(102, 126, 234, 0.4);
+        }
+
+        .btn:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+        }
+
+        .loading {
+            display: inline-block;
+            margin-right: 8px;
+        }
+
+        .spinner {
+            width: 16px;
+            height: 16px;
+            border: 2px solid transparent;
+            border-top: 2px solid white;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .alert {
+            padding: 12px;
+            border-radius: 6px;
+            margin: 20px 0;
+            display: none;
+            animation: slideDown 0.3s ease;
+        }
+
+        @keyframes slideDown {
+            from { opacity: 0; transform: translateY(-10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .alert.success {
+            background: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+
+        .alert.error {
+            background: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+
+        .alert h4 {
+            margin-bottom: 8px;
+            font-size: 16px;
+        }
+
+        .alert p {
+            margin-bottom: 4px;
+            font-size: 14px;
+        }
+
+        .task-details {
+            background: #f8f9fa;
+            border-radius: 6px;
+            padding: 15px;
+            margin-top: 10px;
+        }
+
+        .task-details p {
+            margin-bottom: 8px;
+        }
+
+        .task-details strong {
+            color: #333;
+        }
+
+        .validation-errors {
+            margin-top: 10px;
+        }
+
+        .validation-errors ul {
+            list-style: none;
+            padding-left: 0;
+        }
+
+        .validation-errors li {
+            background: #fff3cd;
+            border: 1px solid #ffeaa7;
+            color: #856404;
+            padding: 8px 12px;
+            margin-bottom: 6px;
+            border-radius: 4px;
+            font-size: 14px;
+        }
+
+        .api-config {
+            background: #e9ecef;
+            border-radius: 6px;
+            padding: 12px;
+            margin-bottom: 20px;
+            font-size: 14px;
+            color: #495057;
+        }
+
+        .api-config strong {
+            color: #212529;
+        }
+
+        @media (max-width: 600px) {
+            .container {
+                padding: 20px;
+                margin: 10px;
+            }
+            
+            .header h1 {
+                font-size: 24px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🚀 Create New Task</h1>
+            <p>Add a new task to your Techwave tracker</p>
+        </div>
+
+        <div class="api-config">
+            <strong>API Endpoint:</strong> POST <span id="api-endpoint">/api/tasks</span><br>
+            <strong>Status:</strong> <span id="api-status">Ready</span>
+        </div>
+
+        <form id="taskForm">
+            <div class="form-group">
+                <label for="title">
+                    Task Title <span class="required">*</span>
+                </label>
+                <input 
+                    type="text" 
+                    id="title" 
+                    name="title" 
+                    placeholder="Enter a descriptive title for your task"
+                    maxlength="255"
+                    required
+                >
+                <div class="char-count" id="titleCount">0 / 255 characters</div>
+            </div>
+
+            <div class="form-group">
+                <label for="description">Task Description (Optional)</label>
+                <textarea 
+                    id="description" 
+                    name="description" 
+                    placeholder="Add more details about the task..."
+                    maxlength="2000"
+                ></textarea>
+                <div class="char-count" id="descriptionCount">0 / 2000 characters</div>
+            </div>
+
+            <button type="submit" class="btn" id="submitBtn">
+                <span id="submitText">Create Task</span>
+            </button>
+        </form>
+
+        <div id="alertContainer"></div>
+    </div>
+
+    <script>
+        // Configuration
+        const API_BASE_URL = 'http://localhost:8080'; // Update this to match your Spring Boot server
+        const API_ENDPOINT = '/api/tasks';
+        
+        // DOM elements
+        const form = document.getElementById('taskForm');
+        const titleInput = document.getElementById('title');
+        const descriptionInput = document.getElementById('description');
+        const submitBtn = document.getElementById('submitBtn');
+        const submitText = document.getElementById('submitText');
+        const alertContainer = document.getElementById('alertContainer');
+        const titleCount = document.getElementById('titleCount');
+        const descriptionCount = document.getElementById('descriptionCount');
+        const apiEndpointSpan = document.getElementById('api-endpoint');
+        const apiStatus = document.getElementById('api-status');
+
+        // Initialize
+        apiEndpointSpan.textContent = API_BASE_URL + API_ENDPOINT;
+        
+        // Character counting
+        function updateCharCount(input, counter, maxLength) {
+            const currentLength = input.value.length;
+            counter.textContent = `${currentLength} / ${maxLength} characters`;
+            
+            if (currentLength > maxLength * 0.9) {
+                counter.className = 'char-count error';
+            } else if (currentLength > maxLength * 0.8) {
+                counter.className = 'char-count warning';
+            } else {
+                counter.className = 'char-count';
+            }
+        }
+
+        titleInput.addEventListener('input', () => updateCharCount(titleInput, titleCount, 255));
+        descriptionInput.addEventListener('input', () => updateCharCount(descriptionInput, descriptionCount, 2000));
+
+        // Form submission
+        form.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            await createTask();
+        });
+
+        async function createTask() {
+            // Clear previous alerts
+            clearAlerts();
+            
+            // Get form data
+            const title = titleInput.value.trim();
+            const description = descriptionInput.value.trim() || null;
+            
+            // Basic client-side validation
+            if (!title) {
+                showError('Validation Error', ['Title is required and cannot be empty']);
+                return;
+            }
+            
+            if (title.length > 255) {
+                showError('Validation Error', ['Title cannot exceed 255 characters']);
+                return;
+            }
+            
+            if (description && description.length > 2000) {
+                showError('Validation Error', ['Description cannot exceed 2000 characters']);
+                return;
+            }
+
+            // Show loading state
+            setLoading(true);
+            apiStatus.textContent = 'Creating task...';
+            
+            try {
+                const requestBody = { title };
+                if (description) {
+                    requestBody.description = description;
+                }
+
+                console.log('Sending request:', requestBody);
+                
+                const response = await fetch(API_BASE_URL + API_ENDPOINT, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        // Add authorization header if needed
+                        // 'Authorization': 'Bearer your-token-here'
+                    },
+                    body: JSON.stringify(requestBody)
+                });
+
+                console.log('Response status:', response.status);
+                console.log('Response headers:', [...response.headers.entries()]);
+
+                const responseData = await response.json();
+                console.log('Response data:', responseData);
+
+                if (response.ok) {
+                    // Success (HTTP 201)
+                    showSuccess('Task Created Successfully!', responseData);
+                    form.reset();
+                    updateCharCount(titleInput, titleCount, 255);
+                    updateCharCount(descriptionInput, descriptionCount, 2000);
+                    apiStatus.textContent = 'Task created';
+                } else {
+                    // Error response
+                    handleErrorResponse(response.status, responseData);
+                }
+
+            } catch (error) {
+                console.error('Network error:', error);
+                showError('Network Error', [
+                    'Failed to connect to the API server.',
+                    'Please check if the server is running on ' + API_BASE_URL,
+                    `Error: ${error.message}`
+                ]);
+                apiStatus.textContent = 'Connection failed';
+            } finally {
+                setLoading(false);
+            }
+        }
+
+        function handleErrorResponse(status, responseData) {
+            console.log('Handling error response:', status, responseData);
+            
+            switch (status) {
+                case 400:
+                    // Bad Request - Validation errors
+                    const errors = extractValidationErrors(responseData);
+                    showError('Validation Error', errors);
+                    apiStatus.textContent = 'Validation failed';
+                    break;
+                    
+                case 401:
+                    showError('Authentication Required', ['Please provide valid authentication credentials']);
+                    apiStatus.textContent = 'Authentication required';
+                    break;
+                    
+                case 403:
+                    showError('Access Denied', ['You do not have permission to create tasks']);
+                    apiStatus.textContent = 'Access denied';
+                    break;
+                    
+                case 429:
+                    const retryAfter = responseData.details?.retry_after_seconds || 60;
+                    showError('Rate Limited', [`Too many requests. Please try again in ${retryAfter} seconds.`]);
+                    apiStatus.textContent = 'Rate limited';
+                    break;
+                    
+                case 500:
+                    showError('Server Error', [
+                        'An internal server error occurred while creating the task.',
+                        `Request ID: ${responseData.request_id || 'N/A'}`
+                    ]);
+                    apiStatus.textContent = 'Server error';
+                    break;
+                    
+                case 503:
+                    const serviceRetry = responseData.retry_after_seconds || 120;
+                    showError('Service Unavailable', [
+                        'The service is temporarily unavailable.',
+                        `Please try again in ${serviceRetry} seconds.`
+                    ]);
+                    apiStatus.textContent = 'Service unavailable';
+                    break;
+                    
+                default:
+                    showError('Unexpected Error', [
+                        `HTTP ${status}: ${responseData.message || 'Unknown error occurred'}`
+                    ]);
+                    apiStatus.textContent = 'Unexpected error';
+            }
+        }
+
+        function extractValidationErrors(responseData) {
+            const errors = [];
+            
+            // Handle FRD-style error response
+            if (responseData.message) {
+                errors.push(responseData.message);
+            }
+            
+            // Handle Spring Boot validation errors (if using different format)
+            if (responseData.errors) {
+                if (Array.isArray(responseData.errors)) {
+                    errors.push(...responseData.errors);
+                } else if (typeof responseData.errors === 'object') {
+                    Object.entries(responseData.errors).forEach(([field, message]) => {
+                        errors.push(`${field}: ${message}`);
+                    });
+                }
+            }
+            
+            // Handle field-specific errors
+            if (responseData.details) {
+                if (responseData.details.max_length && responseData.details.provided_length) {
+                    errors.push(`Maximum length: ${responseData.details.max_length}, provided: ${responseData.details.provided_length}`);
+                }
+            }
+            
+            return errors.length > 0 ? errors : ['Validation failed'];
+        }
+
+        function showSuccess(title, taskData) {
+            const alert = document.createElement('div');
+            alert.className = 'alert success';
+            alert.style.display = 'block';
+            
+            alert.innerHTML = `
+                <h4>✅ ${title}</h4>
+                <div class="task-details">
+                    <p><strong>ID:</strong> ${taskData.id}</p>
+                    <p><strong>Title:</strong> ${taskData.title}</p>
+                    <p><strong>Description:</strong> ${taskData.description || 'None'}</p>
+                    <p><strong>Status:</strong> ${taskData.status}</p>
+                    <p><strong>Created:</strong> ${new Date(taskData.createdAt).toLocaleString()}</p>
+                </div>
+            `;
+            
+            alertContainer.appendChild(alert);
+            
+            // Auto-hide after 10 seconds
+            setTimeout(() => {
+                alert.style.display = 'none';
+            }, 10000);
+        }
+
+        function showError(title, errors) {
+            const alert = document.createElement('div');
+            alert.className = 'alert error';
+            alert.style.display = 'block';
+            
+            const errorList = errors.map(error => `<li>${error}</li>`).join('');
+            
+            alert.innerHTML = `
+                <h4>❌ ${title}</h4>
+                <div class="validation-errors">
+                    <ul>${errorList}</ul>
+                </div>
+            `;
+            
+            alertContainer.appendChild(alert);
+            
+            // Auto-hide after 8 seconds
+            setTimeout(() => {
+                alert.style.display = 'none';
+            }, 8000);
+        }
+
+        function clearAlerts() {
+            alertContainer.innerHTML = '';
+        }
+
+        function setLoading(isLoading) {
+            submitBtn.disabled = isLoading;
+            
+            if (isLoading) {
+                submitText.innerHTML = `
+                    <span class="loading">
+                        <div class="spinner"></div>
+                    </span>
+                    Creating Task...
+                `;
+            } else {
+                submitText.textContent = 'Create Task';
+            }
+        }
+
+        // Test API connectivity on load
+        window.addEventListener('load', async () => {
+            try {
+                // Try to ping the API (you might need to add a health endpoint)
+                const response = await fetch(API_BASE_URL + '/actuator/health', {
+                    method: 'GET',
+                    headers: { 'Accept': 'application/json' }
+                });
+                
+                if (response.ok) {
+                    apiStatus.textContent = 'Connected ✓';
+                    apiStatus.style.color = '#28a745';
+                }
+            } catch (error) {
+                apiStatus.textContent = 'Disconnected ✗';
+                apiStatus.style.color = '#dc3545';
+                console.log('API health check failed:', error.message);
+            }
+        });
+    </script>
+</body>
+</html>
